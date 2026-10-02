@@ -61,6 +61,17 @@ At downstream time:
 The selected preference provides an operational description of the balance of
 shared and modality-specific information used by a task. 
 
+
+---
+
+## Notebooks
+
+The repository also contains Jupyter notebooks used to demonstrate the main
+experiments and visualize representative results.
+
+The notebooks are primarily provided for demonstration and result inspection,
+while the Python scripts contain the full training and evaluation pipelines.
+
 ---
 
 ## Repository structure
