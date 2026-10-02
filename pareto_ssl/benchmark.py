@@ -22,7 +22,7 @@ Usage
 -----
 cd <repo root>
 python pareto_ssl/benchmark.py \\
-    --data_dir CoMM/data/trifeatures_corr00 \\
+    --data_dir data/trifeatures_corr00 \\
     --out_dir  pareto_ssl/results_alexnet \\
     --epochs   100 --probe_shots 10 --device cuda
 
@@ -55,10 +55,28 @@ from sklearn.exceptions import ConvergenceWarning
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
-# CoMM architecture — used by gmc and comm
-from models.alexnet import AlexNetEncoder as CoMMEncoder
-from models.input_adapters import PatchedInputAdapter
-from models.mmfusion import MMFusion
+# CoMM architecture -- needed ONLY by the gmc / comm baselines and the
+# mmfusion_joint probe. It is imported lazily (see _import_comm below) so that
+# STEER, CLIP and FactorCL run without a CoMM checkout present.
+_COMM_HINT = (
+    "The '{what}' path needs the CoMM reference implementation, which is a separate "
+    "project and is not redistributed here.\n"
+    "Clone it next to this repository:\n"
+    "    git clone https://github.com/Duplums/CoMM\n"
+    "so that <repo root>/CoMM/models/ exists, then re-run.\n"
+    "STEER itself, CLIP and FactorCL do not need it."
+)
+
+
+def _import_comm(what="gmc / comm"):
+    """Import CoMM's encoder/fusion modules on demand, with an actionable error."""
+    try:
+        from models.alexnet import AlexNetEncoder as CoMMEncoder
+        from models.input_adapters import PatchedInputAdapter
+        from models.mmfusion import MMFusion
+    except ImportError as e:
+        raise ImportError(_COMM_HINT.format(what=what)) from e
+    return CoMMEncoder, PatchedInputAdapter, MMFusion
 
 from pareto_ssl.datasets import (set_pair as set_modality_pair, pair_unique_keys,
                                  get_pair as _ds_pair, set_augment as _set_aug,
@@ -84,7 +102,7 @@ COMM_METHODS   = set(_CFG["comm_methods"])
 LAMBDA_GRID    = _CFG["lambda_grid"]
 
 _P = _CFG.get("paths", {})
-DEFAULT_DATA_DIR = _P.get("data_dir", "CoMM/data/trifeatures_corr00")
+DEFAULT_DATA_DIR = _P.get("data_dir", "data/trifeatures_corr00")
 DEFAULT_OUT_DIR  = _P.get("out_dir",  "pareto_ssl/results_alexnet")
 
 _T = _CFG["training"]
@@ -237,13 +255,14 @@ def set_seed(seed: int):
 
 # CoMM MMFusion factory
 
-def _make_mmfusion(device: str) -> MMFusion:
+def _make_mmfusion(device: str):
     """
     Exact architecture from CoMM trifeatures notebook:
       AlexNetEncoder(global_pool='') → (B, 256, 6, 6) spatial maps
       PatchedInputAdapter            → 36 tokens of 512-d
       FusionTransformer + CLS token  → 512-d joint representation
     """
+    CoMMEncoder, PatchedInputAdapter, MMFusion = _import_comm()
     return MMFusion(
         encoders=[
             CoMMEncoder(latent_dim=512, global_pool='').to(device),
@@ -2011,6 +2030,23 @@ _DIM_RAND_SEED = 0
 def reset_readout_state():
     """Clear fitted PCA bases. Call between checkpoints."""
     _PCA_BASIS.clear()
+
+
+def set_readout(name):
+    """Pick the decomp_R readout when driving the library directly.
+
+    main() does this from --readout, whose default is "dim". An importing caller
+    never goes through main(), so without this it gets the module default "amp"
+    and the simplex interior stays unresolved.
+    """
+    if name not in ("amp", "dim", "dim_rand", "dim_pca"):
+        raise ValueError(f"unknown readout {name!r}")
+    _READOUT[0] = name
+    return name
+
+
+def get_readout():
+    return _READOUT[0]
 
 
 def _select_dims(B, k, readout, key):
