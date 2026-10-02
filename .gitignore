@@ -19,15 +19,13 @@ runs/
 tb_logs/
 *.log
 
-# Local dataset copies; only the Trifeature demo ships
-/data/*
-!/data/tri15_corr00/
+# Datasets are not tracked
+/data/
 
 # Generated figures
 *.png
 !notebooks/**/*.png
 !/assets/**
-!data/tri15_corr00/**/*.png
 *.pdf
 
 # Editor / OS
