@@ -66,7 +66,7 @@ shared and modality-specific information used by a task.
 
 ## Notebooks
 
-The repository also contains Jupyter notebooks used to demonstrate the main
+The repository also contains Jupyter notebooks on the folder **demo** used to demonstrate the main
 experiments and visualize representative results.
 
 The notebooks are primarily provided for demonstration and result inspection,
