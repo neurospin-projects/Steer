@@ -25,7 +25,7 @@ script so the two are comparable cell for cell.
 Usage:
   python pareto_ssl/multibench/pid_analysis/run_model_pid_trifeature_baseline.py \
       --enc-dir pareto_ssl/results_corr_sweep/_parts/corr00_gmc_s42/gmc \
-      --method gmc --data-dir CoMM/data/tri15_corr00 \
+      --method gmc --data-dir data/tri15_corr00 \
       --out pareto_ssl/multibench/pid_analysis/results/trifeature_baselines/gmc_s42.json
 """
 import argparse

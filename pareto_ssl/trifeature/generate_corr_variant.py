@@ -52,7 +52,7 @@ call matches the original argument-for-argument. Requires CPython 3.12.
 
 USAGE
     python pareto_ssl/trifeature/generate_corr_variant.py --corr 0.5 \\
-        --out CoMM/data/tri15_corr50 --n 2800
+        --out data/tri15_corr50 --n 2800
 """
 import argparse
 import json

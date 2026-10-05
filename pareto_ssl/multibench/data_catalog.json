@@ -1,0 +1,17 @@
+{
+ "mosei": {
+  "path": "data/multibench/mosei/mosei_senti_data.pkl"
+ },
+ "humor": {
+  "path": "data/multibench/humor/humor.pkl"
+ },
+ "avmnist": {
+  "path": "data/multibench/avmnist"
+ },
+ "mosi": {
+  "path": "data/multibench/mosi/mosi_data.pkl"
+ },
+ "sarcasm": {
+  "path": "data/multibench/mustard/mustard.pkl"
+ }
+}

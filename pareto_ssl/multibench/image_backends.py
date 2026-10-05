@@ -267,7 +267,9 @@ def _load_avmnist_arrays(root, split):
     aud = (aud / 255.0).reshape(-1, 1, 112, 112)    # (N,1,112,112), normalised
     if split == "train":
         sl = slice(0, 55000)
-    elif split == "val":
+    elif split in ("val", "valid"):
+        # probe.py asks for "valid"; matching only "val" silently fell through to
+        # the whole 60k train array, 55k of which the encoder had already seen.
         sl = slice(55000, 60000)
     else:
         sl = slice(0, len(img))

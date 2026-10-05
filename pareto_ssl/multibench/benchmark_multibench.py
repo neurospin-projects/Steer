@@ -79,9 +79,31 @@ sys.path.insert(0, str(_PROG))
 sys.path.insert(0, str(_PROG / "CoMM"))
 
 from einops import rearrange as _rearrange
-from models.transformer import Transformer as _CoMMTransformer
-from models.mmfusion import FusionTransformer as _CommFusionTransformer
-from dataset.multibench import MultiBench, MultiBenchSSL
+
+from pareto_ssl.multibench.mb_transformer import Transformer as _CoMMTransformer
+from pareto_ssl.multibench.affect_data import (
+    AffectDataset, AffectSSLDataset, collate_affect, collate_affect_ssl,
+    data_path as _affect_path, data_root as _data_root,
+)
+
+
+def _comm_fusion_transformer():
+    """FusionTransformer, needed only by the comm_based architecture.
+
+    That one is CoMM's own fusion block and is not reimplemented here, so the
+    import stays lazy: the STEER / factorcl_based path never reaches it.
+    """
+    try:
+        from models.mmfusion import FusionTransformer
+    except ImportError as e:  # pragma: no cover
+        raise ImportError(
+            "arch='comm_based' needs CoMM's FusionTransformer, a separate project "
+            "that is not redistributed here.\n"
+            "    git clone https://github.com/Duplums/CoMM\n"
+            "so that <repo root>/CoMM/models/ exists, then re-run.\n"
+            "arch='factorcl_based' (the reported STEER configuration) does not need it."
+        ) from e
+    return FusionTransformer
 
 from pareto_ssl.losses import infonce_cross, nt_xent, gmc_loss, comm_loss, comm_loss_dual, cross_self_loss, clip_loss, factorcl as factorcl_loss
 from pareto_ssl.factorcl import CLUBInfoNCECritic, InfoNCECritic
@@ -486,18 +508,15 @@ class LoRACommMLPHead(nn.Module):
 
 def _make_fusion_xfmr(device: str) -> nn.Module:
     """Shared FusionTransformer for comm_based: CLS-pooled, 1-layer, 8-head."""
-    return _CommFusionTransformer(
+    return _comm_fusion_transformer()(
         width=ENC_DIM_XFMR, n_heads=8, n_layers=1,
         fusion="concat", pool="cls", batch_first=True,
     ).to(device)
 
 
 def _image_root(dataset: str) -> str:
-    """Read the data root for an image dataset (avmnist/enrico) from CoMM catalog.json."""
-    catalog_path = os.environ.get("MB_CATALOG") or os.path.join(
-        str(_PROG / "CoMM" / "dataset"), "catalog.json")
-    with open(catalog_path) as f:
-        return json.load(f)[dataset]["path"]
+    """Data root for an image dataset (avmnist/enrico), from our own catalog."""
+    return _data_root(dataset)
 
 
 def enc_film_mode_for(film_mode: str, approach: int) -> str:
@@ -589,10 +608,11 @@ def _ssl_loader(dataset: str, batch_size: int, num_workers: int = 4) -> DataLoad
                              modalities=MODALITIES)
     if is_image_dataset(dataset):
         return image_ssl_loader(dataset, _image_root(dataset), batch_size, num_workers)
-    ds = MultiBenchSSL(dataset=dataset, split="train", modalities=MODALITIES,
-                       task="classification", augmentations="drop+noise")
+    ds = AffectSSLDataset(_affect_path(dataset), dataset, split="train",
+                          modalities=MODALITIES, task="classification",
+                          augmentations="drop+noise")
     return DataLoader(ds, batch_size=batch_size, shuffle=True, num_workers=num_workers,
-                      pin_memory=True, drop_last=True, collate_fn=ds.collate_fn_affect)
+                      pin_memory=True, drop_last=True, collate_fn=collate_affect_ssl)
 
 
 def _probe_loader(dataset: str, split: str, batch_size: int, num_workers: int = 4,
@@ -602,9 +622,10 @@ def _probe_loader(dataset: str, split: str, batch_size: int, num_workers: int = 
                                num_workers=num_workers, modalities=MODALITIES)
     if is_image_dataset(dataset):
         return image_probe_loader(dataset, _image_root(dataset), split, batch_size, num_workers)
-    ds = MultiBench(dataset=dataset, split=split, modalities=MODALITIES, task="classification")
+    ds = AffectDataset(_affect_path(dataset), dataset, split=split,
+                       modalities=MODALITIES, task="classification")
     return DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=num_workers,
-                      pin_memory=True, collate_fn=ds.collate_fn_affect)
+                      pin_memory=True, collate_fn=collate_affect)
 
 
 # Training

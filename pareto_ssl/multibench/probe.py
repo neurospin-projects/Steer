@@ -60,14 +60,25 @@ _PROG = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_PROG))
 sys.path.insert(0, str(_PROG / "CoMM"))
 
-from dataset.multibench import MultiBench
+from pareto_ssl.multibench.affect_data import (
+    AffectDataset, collate_affect, data_path as _affect_path)
 from pareto_ssl.networks import (ProjectionHead, DualFiLMProjectionHead,
                                  DualFiLMProjectionHeadPreNorm,
                                  LoRADualProjectionHead, LoRATriProjectionHead,
                                  LoRATransformerEncoder)
 from pareto_ssl.benchmark import DEFAULT_PROJ_DIM
 
-from models.mmfusion import FusionTransformer as _CommFusionTransformer
+try:
+    from models.mmfusion import FusionTransformer as _CommFusionTransformer
+except ImportError as _e:  # pragma: no cover
+    raise ImportError(
+        "The MultiBench pipeline builds on CoMM's Transformer, which is a separate "
+        "project and is not redistributed here.\n"
+        "Clone it next to this repository:\n"
+        "    git clone https://github.com/Duplums/CoMM\n"
+        "so that <repo root>/CoMM/models/ exists, then re-run.\n"
+        "The Trifeature pipeline (pareto_ssl/benchmark.py) does not need it."
+    ) from _e
 
 from pareto_ssl.multibench.benchmark_multibench import (
     simplex_grid,
@@ -517,9 +528,10 @@ def _build_probe_loader(dataset, split, batch_size):
                                modalities=MODALITIES)
     if is_image_dataset(dataset):
         return image_probe_loader(dataset, _image_root(dataset), split, batch_size, _NW)
-    ds = MultiBench(dataset=dataset, split=split, modalities=MODALITIES, task="classification")
+    ds = AffectDataset(_affect_path(dataset), dataset, split=split,
+                       modalities=MODALITIES, task="classification")
     return DataLoader(ds, batch_size=batch_size, shuffle=False,
-                      num_workers=_NW, pin_memory=True, collate_fn=ds.collate_fn_affect)
+                      num_workers=_NW, pin_memory=True, collate_fn=collate_affect)
 
 
 def _raw_batches(dataset, split, batch_size):
@@ -590,8 +602,9 @@ def _neutral_mask(dataset, split):
     """
     if dataset not in ("mosi", "mosei"):
         return None
-    mb = MultiBench(dataset=dataset, split=split, modalities=MODALITIES, task="classification")
-    raw = np.asarray(mb.dataset.dataset["labels"]).reshape(-1)
+    mb = AffectDataset(_affect_path(dataset), dataset, split=split,
+                       modalities=MODALITIES, task="classification")
+    raw = np.asarray(mb.data["labels"]).reshape(-1)
     return raw != 0.0
 
 
@@ -1261,9 +1274,10 @@ def run_fixed(enc_dir, dataset, approach, enc_dim, proj_dim, batch_size, device,
                                    task=_MT_TASK[0], modalities=MODALITIES)
         if is_image_dataset(dataset):
             return image_probe_loader(dataset, _image_root(dataset), split, batch_size, _NW)
-        ds = MultiBench(dataset=dataset, split=split, modalities=MODALITIES, task="classification")
+        ds = AffectDataset(_affect_path(dataset), dataset, split=split,
+                           modalities=MODALITIES, task="classification")
         return DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=_NW,
-                          pin_memory=True, collate_fn=ds.collate_fn_affect)
+                          pin_memory=True, collate_fn=collate_affect)
 
     # comm_based
     if arch == "comm_based":

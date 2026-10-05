@@ -50,7 +50,7 @@ read.
 Usage:
   python pareto_ssl/multibench/pid_analysis/run_model_pid_steer.py \
       --enc-dir pareto_ssl/results_corr_sweep/_parts/corr00_simclr_simplex_enc_decomp_R_s42_lc05/simclr_simplex_enc_decomp_R \
-      --data-dir CoMM/data/tri15_corr00 --out results/steer_trifeature/steer_s42_lc05.json
+      --data-dir data/tri15_corr00 --out results/steer_trifeature/steer_s42_lc05.json
 """
 import argparse
 import json

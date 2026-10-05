@@ -27,7 +27,7 @@ import warnings
 import numpy as np
 
 # PASTE YOUR COORDINATES HERE  —  [R, U1, U2], higher is better on every axis
-# Trifeature, 15 shared shapes, corr(U, R) = 0  (CoMM/data/tri15_corr00).
+# Trifeature, 15 shared shapes, corr(U, R) = 0  (data/tri15_corr00).
 # Test linear-probe accuracy: R = share (15-way), U1 = unique1 (10-way), U2 = unique2 (10-way).
 # Every value is the MEAN over seeds 42-46 of one matched sweep, all launched 2026-09-01:
 #   pareto_ssl/results_corr_sweep/_parts/corr00_<method>_s<seed>[...]
