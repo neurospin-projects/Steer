@@ -61,6 +61,22 @@ At downstream time:
 The selected preference provides an operational description of the balance of
 shared and modality-specific information used by a task.
 
+---
+
+## Reproducibility notebooks
+
+`demo/` reproduces the main evaluation pipeline from pretrained checkpoints.
+
+| notebook | what it does |
+|---|---|
+| `demo/steer_trifeature.ipynb` | trains STEER on Trifeature and probes the full simplex |
+| `demo/steer_multibench.ipynb` | loads checkpoints and reproduces the reported MultiBench table |
+
+The MultiBench notebook does **not** retrain. It loads pretrained checkpoints,
+sweeps the 15 preferences on validation, selects the operating point by
+consensus across seeds, re-probes every seed at that single preference, and
+reports the held-out test score. The training command that produced the
+checkpoints is shown in the notebook but not executed .
 
 ---
 
@@ -119,22 +135,6 @@ and `{train,test}_labels.npy`.
 Nothing in this repository requires a third-party checkout: the MultiBench
 loaders and the sequence encoder are implemented here.
 
----
-
-## Reproducibility notebooks
-
-`demo/` reproduces the main evaluation pipeline from pretrained checkpoints.
-
-| notebook | what it does |
-|---|---|
-| `demo/steer_trifeature.ipynb` | trains STEER on Trifeature and probes the full simplex |
-| `demo/steer_multibench.ipynb` | loads checkpoints and reproduces the reported MultiBench table |
-
-The MultiBench notebook does **not** retrain. It loads pretrained checkpoints,
-sweeps the 15 preferences on validation, selects the operating point by
-consensus across seeds, re-probes every seed at that single preference, and
-reports the held-out test score. The training command that produced the
-checkpoints is shown in the notebook but not executed .
 
 ---
 
