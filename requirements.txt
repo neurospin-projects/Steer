@@ -15,7 +15,7 @@ matplotlib>=3.7
 # Training logs
 tensorboard>=2.13
 
-# MultiBench pipeline only (via the CoMM reference implementation)
+# MultiBench pipeline only
 einops>=0.6
 
 # PID analysis only (pareto_ssl/multibench/pid_analysis)
