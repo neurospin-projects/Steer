@@ -87,7 +87,11 @@ checkpoints is shown in the notebook but not executed .
 ```bash
 git clone <ANONYMOUS_REPOSITORY_URL>
 cd Steer
-conda create -n steer python=3.10 && conda activate steer
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
@@ -242,8 +246,6 @@ python steer_neuro/eval_downstream.py \
 per-preference CSVs written by `extract_embeddings.py`.
 
 
-`--scope` selects which layers carry the preference-conditioned adapters:
-`bottleneck`, `last_stage` or `full`.
 
 ---
 
