@@ -1,6 +1,6 @@
 # STEER
 
-**Preference-conditioned multimodal self-supervised learning for shared and modality-specific information**
+**Beyond a Single Representation: Steering Shared and Modality-Specific Information in Multimodal SSL**
 
 STEER learns a family of multimodal representations within a single pretrained
 model, allowing different downstream tasks to select different balances of
@@ -109,7 +109,7 @@ points. Each task peaks at a different preference.
 |---|---|
 | Trifeature | `pareto_ssl/trifeature/generate_corr_variant.py` |
 | CMU-MOSEI, UR-FUNNY, AV-MNIST | [MultiBench](https://github.com/pliang279/MultiBench) |
-| Neuroimaging | not redistributable |
+| Neuroimaging | UK Biobank |
 
 For the MultiBench datasets, copy `pareto_ssl/multibench/data_catalog.example.json`
 to `data_catalog.json` and point each entry at your copy of the data. AV-MNIST is
@@ -134,8 +134,7 @@ The MultiBench notebook does **not** retrain. It loads pretrained checkpoints,
 sweeps the 15 preferences on validation, selects the operating point by
 consensus across seeds, re-probes every seed at that single preference, and
 reports the held-out test score. The training command that produced the
-checkpoints is shown in the notebook but not executed — one seed is 5.5 h on
-UR-FUNNY, 10.8 h on CMU-MOSEI and 22.2 h on AV-MNIST at 200 epochs.
+checkpoints is shown in the notebook but not executed .
 
 ---
 
@@ -179,18 +178,69 @@ directly into `--fixed_lam`.
 
 Reported settings: λ_CLUB 0.25, `dim` read-out, 5 preferences per minibatch,
 200 epochs, seeds 42–46. CMU-MOSEI is scored on the non-neutral test set;
-UR-FUNNY on accuracy; AV-MNIST on top-1. AV-MNIST fits its probe on the train
-split (`--probe_fit train`, standard linear evaluation), the affect datasets on
-validation.
+UR-FUNNY on accuracy; AV-MNIST on top-1.
 
 ### Neuroimaging
 
+The neuroimaging cohorts are access-controlled and are not redistributable, so
+this section documents the pipeline rather than providing a runnable example.
+
+Two external pieces are required: the **ALMA** preprocessing code
+(`DeepLearning_Tracto`, imported for `SkeletonDataset` and the transforms) and
+the cohort data itself. Dataset roots are read from the environment, not from
+command-line flags:
+
 ```bash
-python steer_neuro/train_steer_neuro.py --scope bottleneck --save_dir runs/steer_neuro
-python steer_neuro/extract_embeddings.py --ckpt runs/steer_neuro/last.pt --out_dir runs/steer_neuro/emb
-python steer_neuro/select_lambda_val_test.py --ckpt runs/steer_neuro/last.pt --task prematurity
-python steer_neuro/eval_downstream.py --out_csv downstream_comparison.csv
+export STEER_NEURO_TRACTO_DIR=/path/to/DeepLearning_Tracto
+export STEER_NEURO_CHAMPO_DATASET_DIR=/path/to/champollion
+export STEER_NEURO_ALMA_DATASET_DIR=/path/to/alma
+export STEER_NEURO_SIDE=right          # left | right
+export STEER_NEURO_COHORT=ukb          # ukb | hcp | abcd
 ```
+
+`STEER_NEURO_CHAMPO_SUBJECT_CSV`, `STEER_NEURO_CHAMPO_NPY` and
+`STEER_NEURO_ALMA_CROP_DIR` are derived from those roots and can be overridden
+individually.
+
+Train, writing `steer_neuro_final.pt` into `--save_dir`:
+
+```bash
+python steer_neuro/train_steer_neuro.py --scope last_stage --save_dir runs/steer_neuro
+```
+
+`--scope` selects which layers carry the preference-conditioned adapters:
+`bottleneck`, `last_stage` or `full`.
+
+Extract embeddings across the preference simplex:
+
+```bash
+python steer_neuro/extract_embeddings.py \
+    --ckpt runs/steer_neuro/steer_neuro_final.pt \
+    --out_dir runs/steer_neuro/emb --readout dim
+```
+
+Select the operating point on validation, then evaluate it on the held-out
+test split:
+
+```bash
+python steer_neuro/select_lambda_val_test.py \
+    --ckpt runs/steer_neuro/steer_neuro_final.pt --task prematurity
+```
+
+`--task` is one of `prematurity`, `cognition` or `isomap`, and `--ckpt` is
+repeatable to pool several checkpoints.
+
+Compare against the baselines:
+
+```bash
+python steer_neuro/eval_downstream.py \
+    --steer_dir STEER=runs/steer_neuro/emb \
+    --out_csv downstream_comparison.csv
+```
+
+`--steer_dir` takes `LABEL=path` and is repeatable; each directory holds the
+per-preference CSVs written by `extract_embeddings.py`.
+
 
 `--scope` selects which layers carry the preference-conditioned adapters:
 `bottleneck`, `last_stage` or `full`.
